@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
 import { getSimState, addLog } from '@/lib/simulation-state';
+import { backendEnabled, proxyJSON } from '@/lib/backend';
 
 const VALID = ['normal_driving','highway_acc','aeb_trigger','lane_departure','sensor_fault'];
 
 export async function POST(req: Request) {
   const { scenario } = await req.json();
+
+  if (backendEnabled()) return proxyJSON('/api/sim/scenario', { method: 'POST', body: { scenario } });
+
   if (!VALID.includes(scenario)) {
     return NextResponse.json({ error: 'Invalid scenario' }, { status: 400 });
   }

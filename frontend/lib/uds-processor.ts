@@ -1,6 +1,10 @@
 import type { SimulationState, UDSCommandResult } from '@/types';
 import { addLog } from './simulation-state';
 
+// Service handlers build everything except `requestHex` / `timestamp`;
+// processUDS fills those in once it has parsed the request.
+type PartialUDSResult = Omit<UDSCommandResult, 'timestamp' | 'requestHex'>;
+
 // ── Service names ─────────────────────────────────────────────────────────────
 
 const SERVICE_NAMES: Record<number, string> = {
@@ -48,9 +52,8 @@ function toHex(bytes: number[]): string {
   return bytes.map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
 }
 
-function negativeResponse(svcId: number, nrc: number, note: string): Omit<UDSCommandResult, 'timestamp'> {
+function negativeResponse(svcId: number, nrc: number, note: string): PartialUDSResult {
   return {
-    requestHex: '',
     responseHex: toHex([0x7F, svcId, nrc]),
     serviceName: SERVICE_NAMES[svcId] ?? `Service_0x${svcId.toString(16).toUpperCase()}`,
     positive: false,
@@ -75,7 +78,7 @@ export function processUDS(hexInput: string, state: SimulationState): UDSCommand
 
   addLog(state, 'info', 'UDS', `REQ → ${reqHex}  [${svcName}]`);
 
-  let result: Omit<UDSCommandResult, 'timestamp'>;
+  let result: PartialUDSResult;
 
   switch (svcId) {
     case 0x10: result = handleSession(bytes, state); break;
@@ -88,15 +91,14 @@ export function processUDS(hexInput: string, state: SimulationState): UDSCommand
     default:   result = negativeResponse(svcId, 0x11, 'Service not implemented');
   }
 
-  result.requestHex = reqHex;
   addLog(state, result.positive ? 'info' : 'warn', 'UDS', `RES ← ${result.responseHex}  [${result.interpretation}]`);
 
-  return { ...result, timestamp: Date.now() };
+  return { ...result, requestHex: reqHex, timestamp: Date.now() };
 }
 
 // ── 0x10 DiagnosticSessionControl ────────────────────────────────────────────
 
-function handleSession(bytes: number[], state: SimulationState): Omit<UDSCommandResult, 'timestamp'> {
+function handleSession(bytes: number[], state: SimulationState): PartialUDSResult {
   const sub = bytes[1];
   const SESSION_MAP: Record<number, SimulationState['ecu']['session']> = {
     0x01: 'default', 0x03: 'extended', 0x02: 'programming',
@@ -124,7 +126,7 @@ function handleSession(bytes: number[], state: SimulationState): Omit<UDSCommand
 
 // ── 0x11 ECUReset ─────────────────────────────────────────────────────────────
 
-function handleReset(bytes: number[], state: SimulationState): Omit<UDSCommandResult, 'timestamp'> {
+function handleReset(bytes: number[], state: SimulationState): PartialUDSResult {
   const sub = bytes[1];
   const types: Record<number, string> = { 0x01: 'HardReset', 0x02: 'KeyOffOnReset', 0x03: 'SoftReset' };
   if (!types[sub]) return negativeResponse(0x11, 0x12, 'Unknown reset type');
@@ -144,7 +146,7 @@ function handleReset(bytes: number[], state: SimulationState): Omit<UDSCommandRe
 
 // ── 0x14 ClearDiagnosticInformation ──────────────────────────────────────────
 
-function handleClearDTC(bytes: number[], state: SimulationState): Omit<UDSCommandResult, 'timestamp'> {
+function handleClearDTC(bytes: number[], state: SimulationState): PartialUDSResult {
   if (bytes.length < 4) return negativeResponse(0x14, 0x13, 'Need 3-byte groupOfDTC');
   const group = toHex(bytes.slice(1, 4));
 
@@ -170,7 +172,7 @@ function handleClearDTC(bytes: number[], state: SimulationState): Omit<UDSComman
 
 // ── 0x19 ReadDTCInformation ───────────────────────────────────────────────────
 
-function handleReadDTC(bytes: number[], state: SimulationState): Omit<UDSCommandResult, 'timestamp'> {
+function handleReadDTC(bytes: number[], state: SimulationState): PartialUDSResult {
   const sub = bytes[1];
 
   if (sub === 0x02) {
@@ -208,7 +210,7 @@ function handleReadDTC(bytes: number[], state: SimulationState): Omit<UDSCommand
 
 // ── 0x22 ReadDataByIdentifier ─────────────────────────────────────────────────
 
-function handleReadDID(bytes: number[], state: SimulationState): Omit<UDSCommandResult, 'timestamp'> {
+function handleReadDID(bytes: number[], state: SimulationState): PartialUDSResult {
   if (bytes.length < 3) return negativeResponse(0x22, 0x13, 'Need 2-byte DID');
   const did = (bytes[1] << 8) | bytes[2];
   const didName = DID_NAMES[did] ?? `DID_0x${did.toString(16).toUpperCase().padStart(4, '0')}`;
@@ -307,7 +309,7 @@ function handleReadDID(bytes: number[], state: SimulationState): Omit<UDSCommand
 
 // ── 0x27 SecurityAccess ───────────────────────────────────────────────────────
 
-function handleSecurityAccess(bytes: number[], state: SimulationState): Omit<UDSCommandResult, 'timestamp'> {
+function handleSecurityAccess(bytes: number[], state: SimulationState): PartialUDSResult {
   const sub = bytes[1];
 
   if (sub === 0x01) {
@@ -357,7 +359,7 @@ function handleSecurityAccess(bytes: number[], state: SimulationState): Omit<UDS
 
 // ── 0x2E WriteDataByIdentifier ────────────────────────────────────────────────
 
-function handleWriteDID(bytes: number[], state: SimulationState): Omit<UDSCommandResult, 'timestamp'> {
+function handleWriteDID(bytes: number[], state: SimulationState): PartialUDSResult {
   if (!state.ecu.securityUnlocked) {
     return negativeResponse(0x2E, 0x33, 'SecurityAccess required before WriteDataByIdentifier');
   }

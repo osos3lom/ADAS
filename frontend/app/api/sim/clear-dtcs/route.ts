@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
 import { getSimState, addLog } from '@/lib/simulation-state';
+import { backendEnabled, proxyJSON } from '@/lib/backend';
 
 export async function POST() {
+  if (backendEnabled()) return proxyJSON('/api/sim/clear-dtcs', { method: 'POST' });
+
   const state = getSimState();
   const count = state.dtcs.length;
   state.dtcs = [];

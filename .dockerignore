@@ -1,0 +1,11 @@
+# Root build context = repo root (used by the frontend image). Keep it lean.
+.git
+backend
+**/node_modules
+frontend/.next
+frontend/out
+**/__pycache__
+**/*.pyc
+**/.venv
+*.md
+.github

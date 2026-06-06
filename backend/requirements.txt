@@ -1,16 +1,22 @@
-# ── Core web framework ────────────────────────────────────────────────────────
+# ── Core web framework (Phase 0) ──────────────────────────────────────────────
 fastapi>=0.115.0
 uvicorn[standard]>=0.30.0
 pydantic>=2.9.0
-websockets>=13.0
 
-# ── CAN bus ───────────────────────────────────────────────────────────────────
-python-can>=4.4.0
+# ── Tests ─────────────────────────────────────────────────────────────────────
+pytest>=8.0.0
+httpx>=0.27.0          # required by fastapi.testclient (Starlette TestClient)
 
-# ── ADAS / perception (optional — uncomment for real sensor processing) ───────
-# opencv-python>=4.10.0
+# ── CAN bus (Phase 3 — uncomment when wiring real SocketCAN/UDS) ───────────────
+# python-can>=4.4.0
+# can-isotp>=2.0.0
+# udsoncan>=1.23.0
+# cantools>=39.0.0
+
+# ── ADAS / perception (Phase 2 — optional, for real sensor processing) ─────────
 # numpy>=1.26.0
-# open3d>=0.18.0          # LiDAR point-cloud processing
-# ultralytics>=8.0.0      # YOLOv8 object detection
+# opencv-python>=4.10.0
+# open3d>=0.18.0        # LiDAR point-cloud processing
+# ultralytics>=8.0.0    # YOLOv8 object detection
 
-# ── ROS2 P…(truncated)
+# ── ROS2 (Phase 1–3) is installed via apt on Ubuntu (ros-humble-*), not pip ────

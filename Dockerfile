@@ -1,16 +1,18 @@
 # ── Next.js ADAS Dashboard ────────────────────────────────────────────────────
-# Development image — hot-reload enabled.
-# For production, swap "npm run dev" for "npm run build && npm start".
-
-FROM node:20-alpine AS base
+# Development image (hot reload). Build context is the repo root so this can copy
+# from ./frontend; see docker-compose.yml (frontend service) and .dockerignore.
+# For a production image, swap the CMD for: RUN npm run build  +  CMD npm start.
+FROM node:20-alpine
 
 ENV NEXT_TELEMETRY_DISABLED=1
-
-# ── Dependencies layer ────────────────────────────────────────────────────────
-FROM base AS deps
 WORKDIR /app
-COPY package*.json ./
-RUN npm ci --prefer-offline
 
-# ── Runtime image ─────────────────────────────────────────────────────────────
-F…(truncated)
+# Dependencies layer (cached separately from source).
+COPY frontend/package*.json ./
+RUN npm install
+
+COPY frontend/ ./
+
+EXPOSE 3000
+
+CMD ["npm", "run", "dev"]

@@ -1,13 +1,39 @@
-###############################################################################
-#  ADAS-ECU Simulator — docker-compose.yml
-#  Run on your hardware:  docker compose up --build
+# ADAS-ECU Simulator — docker compose up --build
 #
-#  Services
-#  ─────────
-#    backend   Python 3.11 FastAPI — simulation engine + UDS server
-#              http://localhost:8000   /docs   /health
-#
-#    frontend  Next.js 15 React dashboard
-#              http://localhost:3000
-#              BACKEND_URL is injected so all /api/sim/* calls proxy
-#              transparen…(truncated)
+#   backend   Python 3.11 FastAPI — simulation engine + ISO 14229 UDS server
+#             http://localhost:8000   (/docs, /health)
+#   frontend  Next.js dashboard
+#             http://localhost:3000
+#             BACKEND_URL is injected so all /api/sim/* calls proxy to the backend.
+
+services:
+  backend:
+    build:
+      context: ./backend
+    container_name: adas-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - CORS_ORIGINS=*
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: adas-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - BACKEND_URL=http://backend:8000
+      - NEXT_TELEMETRY_DISABLED=1
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped

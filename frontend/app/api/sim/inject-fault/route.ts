@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSimState, addDTC, addLog } from '@/lib/simulation-state';
+import { backendEnabled, proxyJSON } from '@/lib/backend';
 
 const FAULTS = [
   { code: 'P1001', description: 'AEB Emergency Activation',           severity: 'warning' as const, byteCode: [0x01,0x10,0x01] },
@@ -12,7 +13,10 @@ const FAULTS = [
 ];
 
 export async function POST(req: Request) {
-  const { code } = await req.json();
+  const { code } = await req.json().catch(() => ({ code: undefined }));
+
+  if (backendEnabled()) return proxyJSON('/api/sim/inject-fault', { method: 'POST', body: { code } });
+
   const fault = FAULTS.find(f => f.code === code) ?? FAULTS[Math.floor(Math.random() * FAULTS.length)];
 
   const state = getSimState();
@@ -23,5 +27,7 @@ export async function POST(req: Request) {
 }
 
 export async function GET() {
+  if (backendEnabled()) return proxyJSON('/api/sim/inject-fault');
+
   return NextResponse.json({ faults: FAULTS.map(f => ({ code: f.code, description: f.description, severity: f.severity })) });
 }
