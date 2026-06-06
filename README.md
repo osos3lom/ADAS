@@ -5,12 +5,16 @@ simulation feeding an ADAS state machine (AEB / LDW / ACC), exposed over an
 **ISO 14229 (UDS)** diagnostic interface, with a live web dashboard that doubles
 as a diagnostic tester.
 
-The end goal is the full robotics stack (CARLA → ROS2 → SocketCAN UDS). This
-repository is being built up to that in phases — see [Roadmap](#roadmap).
+The end goal is the full robotics stack (CARLA → ROS2 → SocketCAN UDS), run on a single
+workstation: **CARLA 0.9.15 native on Windows (GPU) + ROS2 Humble in WSL2 Ubuntu 22.04**.
+This repository is built up to that in phases — see the full learning roadmap in
+[docs/PLAN.md](docs/PLAN.md) and the bring-up runbook in [docs/PHASE1_SETUP.md](docs/PHASE1_SETUP.md).
 
-> **Status: Phase 0 complete.** A Next.js dashboard + a runnable Python FastAPI
-> backend that simulates the ADAS vehicle and serves a working UDS server over
-> REST. CARLA / ROS2 / real SocketCAN are Phase 1+.
+> **Status: Phase 0 complete (+ persistence & admin UI).** A Next.js dashboard that
+> doubles as an **Admin / Control Center** (per-service health + deep links) and a runnable
+> Python FastAPI backend that simulates the ADAS vehicle, serves a working UDS server over
+> REST, and **persists DTCs / logs / UDS audit / sim runs to PostgreSQL**. CARLA / ROS2 /
+> real SocketCAN are Phase 1+.
 
 ---
 
@@ -29,10 +33,12 @@ repository is being built up to that in phases — see [Roadmap](#roadmap).
 │  FastAPI backend  (Python — source of truth)                  │
 │   simulation/  5 driving scenarios → ADAS FSM (AEB/LDW/ACC)   │
 │   uds/         ISO 14229 services 0x10/11/14/19/22/27/2E       │
+│   db/          SQLModel + Alembic → PostgreSQL persistence     │
 │   ros2/ , can/ Phase-3 placeholders (rclpy / SocketCAN)        │
-└───────────────────────────────────────────────────────────────┘
-            ▲ (Phase 1–3)
-   CARLA 0.9.15  →  ROS2 Humble stack  →  vcan0 (real UDS over CAN)
+└──────────────┬────────────────────────────────────────────────┘
+               ▼                          ▲ (Phase 1–3, on this box)
+        PostgreSQL (Docker)      CARLA 0.9.15 (Windows GPU)
+        DTC/log/audit/runs       →  ROS2 Humble (WSL2)  →  UDS over CAN
 ```
 
 The Python simulation + UDS logic in `backend/` is ported 1-to-1 from the intact
@@ -129,19 +135,21 @@ CI runs these plus a frontend build on every push (`.github/workflows/ci.yml`).
 
 ## Roadmap
 
+Full learning-oriented detail (LEARN / READ / BUILD / CHECK per phase) lives in
+[docs/PLAN.md](docs/PLAN.md); the setup runbook is [docs/PHASE1_SETUP.md](docs/PHASE1_SETUP.md).
+
 - **Phase 0 — Foundation (done):** runnable FastAPI backend, dashboard↔backend
-  proxy, Docker, tests, CI.
-- **Phase 1 — Simulation backbone:** Ubuntu + ROS2 Humble + CARLA 0.9.15; spawn
-  ego vehicle, publish camera/LiDAR/IMU topics (`ros2_ws/`).
+  proxy, Docker, tests, CI — **plus** PostgreSQL persistence and the Admin / Control Center.
+- **Phase 1 — Simulation backbone:** WSL2 Ubuntu 22.04 + ROS2 Humble + CARLA 0.9.15 on
+  Windows; spawn ego vehicle, publish camera/LiDAR/IMU topics (`ros2_ws/`).
 - **Phase 2 — ADAS stack:** C++ perception (LiDAR clustering), Python planning
   FSM, C++ control (Pure Pursuit). Reuse the thresholds in `simulation/`.
-- **Phase 3 — Virtual ECU + real UDS over CAN:** `vcan0`, rclpy bridge, UDS
-  server via `python-can` + ISO-TP + `udsoncan`. Wire `backend/ros2/` and
-  `backend/can/` for real. *(Note: rename the `backend/can/` package to avoid
-  clashing with the PyPI `can` module.)*
+- **Phase 3 — Virtual ECU + real UDS over CAN:** rclpy bridge + ISO 14229 over ISO-TP
+  (`python-can` virtual bus + pure-Python `isotp` first; real `vcan0` via a custom WSL2
+  kernel later). Wire `backend/ros2/`; rename `backend/can/` → `backend/canbus/`.
 - **Phase 4 — Tester scripts:** `read_adas_status.py`, `inject_fault.py`,
   `write_adas_param.py`, `clear_dtcs.py` over real CAN.
-- **Phase 5 — CI + docs + demo:** headless integration test, colcon build in CI,
+- **Phase 5 — CI + docs + demo:** replay-based integration test, colcon build in CI,
   demo recording.
 
 ---

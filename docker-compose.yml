@@ -1,26 +1,58 @@
 # ADAS-ECU Simulator — docker compose up --build
 #
+#   db        PostgreSQL 16 — durable store (DTC/log/UDS-audit/sim-runs)
+#             data volume bind-mounted to D:\adas\pgdata (see DB_DATA_DIR below)
 #   backend   Python 3.11 FastAPI — simulation engine + ISO 14229 UDS server
-#             http://localhost:8000   (/docs, /health)
-#   frontend  Next.js dashboard
+#             http://localhost:8000   (/docs, /health, /api/system/status)
+#   frontend  Next.js dashboard / Admin Control Center
 #             http://localhost:3000
-#             BACKEND_URL is injected so all /api/sim/* calls proxy to the backend.
+#
+# The Postgres data directory defaults to D:\adas\pgdata (per the project plan —
+# heavy/runtime data lives on D:). Override with: DB_DATA_DIR=/some/path docker compose up
+# In Docker Desktop, ensure drive D: is shared (Settings → Resources → File sharing).
 
 services:
+  db:
+    image: postgres:16
+    container_name: adas-db
+    environment:
+      - POSTGRES_USER=adas
+      - POSTGRES_PASSWORD=adas
+      - POSTGRES_DB=adas
+    volumes:
+      - ${DB_DATA_DIR:-D:/adas/pgdata}:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U adas -d adas"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
   backend:
     build:
       context: ./backend
     container_name: adas-backend
+    # Schema is bootstrapped idempotently on startup (SQLModel create_all).
+    # Alembic is included for schema evolution — see backend/migrations/.
     ports:
       - "8000:8000"
     environment:
       - CORS_ORIGINS=*
+      - DATABASE_URL=postgresql+psycopg://adas:adas@db:5432/adas
+      - CARLA_HOST=host.docker.internal
+      - CARLA_PORT=2000
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
       interval: 10s
       timeout: 3s
       retries: 5
-      start_period: 10s
+      start_period: 15s
+    depends_on:
+      db:
+        condition: service_healthy
     restart: unless-stopped
 
   frontend:
@@ -32,6 +64,7 @@ services:
       - "3000:3000"
     environment:
       - BACKEND_URL=http://backend:8000
+      - NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
       - NEXT_TELEMETRY_DISABLED=1
     depends_on:
       backend:

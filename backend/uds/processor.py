@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from typing import Dict, List
 
+from observers import emit_uds
 from simulation.state import SimulationState, add_log, now_ms
 from uds import services
 from uds.constants import SERVICE_NAMES, to_hex
@@ -75,5 +76,16 @@ def process_uds(hex_input: str, state: SimulationState) -> Dict[str, object]:
         f"RES ← {result['responseHex']}  [{result['interpretation']}]",
     )
 
-    result["timestamp"] = now_ms()
+    ts = now_ms()
+    result["timestamp"] = ts
+    emit_uds(
+        {
+            "request_hex": req_hex,
+            "response_hex": result.get("responseHex", ""),
+            "service": svc_name,
+            "positive": bool(result.get("positive", False)),
+            "interpretation": result.get("interpretation", ""),
+            "timestamp_ms": ts,
+        }
+    )
     return result

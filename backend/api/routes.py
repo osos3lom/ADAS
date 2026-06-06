@@ -23,6 +23,7 @@ from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
+from observers import emit_run
 from simulation.engine import tick_simulation
 from simulation.state import add_dtc, add_log, get_sim_state
 from uds.processor import process_uds
@@ -97,6 +98,7 @@ def set_scenario(body: ScenarioBody):
     label = SCENARIO_LABELS[body.scenario]
     add_log(state, "info", "SYSTEM", f"Scenario switched → {label}")
     add_log(state, "info", "CARLA", f"World: spawning scenario actors for {label}")
+    emit_run(body.scenario)
 
     return {"ok": True, "scenario": body.scenario}
 

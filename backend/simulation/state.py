@@ -23,6 +23,8 @@ from typing import List, Literal
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
+from observers import emit_dtc, emit_log
+
 
 def now_ms() -> int:
     """Current wall-clock time in milliseconds (mirrors JS ``Date.now()``)."""
@@ -201,9 +203,11 @@ def reset_sim_state() -> SimulationState:
 
 
 def add_log(state: SimulationState, level: str, source: str, message: str) -> None:
-    state.system_log.insert(0, _make_log(level, source, message))
+    entry = _make_log(level, source, message)
+    state.system_log.insert(0, entry)
     if len(state.system_log) > 200:
         del state.system_log[200:]
+    emit_log(entry.timestamp, level, source, message)
 
 
 def add_dtc(
@@ -223,21 +227,37 @@ def add_dtc(
         existing.occurrence_count += 1
         existing.timestamp = now_ms()
         add_log(state, "warn", "ADAS", f"DTC {code} occurrence #{existing.occurrence_count}")
+        _emit_dtc(existing)
     else:
-        state.dtcs.append(
-            DTC(
-                code=code,
-                description=description,
-                severity=severity,
-                status=status,
-                byte_code=byte_code,
-                timestamp=now_ms(),
-                occurrence_count=1,
-            )
+        dtc = DTC(
+            code=code,
+            description=description,
+            severity=severity,
+            status=status,
+            byte_code=byte_code,
+            timestamp=now_ms(),
+            occurrence_count=1,
         )
+        state.dtcs.append(dtc)
         add_log(
             state,
             "error" if severity == "critical" else "warn",
             "ECU",
             f"DTC SET: {code} — {description}",
         )
+        _emit_dtc(dtc)
+
+
+def _emit_dtc(dtc: DTC) -> None:
+    """Forward a DTC to the persistence layer (no-op when DB disabled)."""
+    emit_dtc(
+        {
+            "code": dtc.code,
+            "description": dtc.description,
+            "severity": dtc.severity,
+            "status": dtc.status,
+            "occurrence_count": dtc.occurrence_count,
+            "byte_code": dtc.byte_code,
+            "timestamp_ms": dtc.timestamp,
+        }
+    )

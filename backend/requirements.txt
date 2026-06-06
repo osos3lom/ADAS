@@ -3,6 +3,11 @@ fastapi>=0.115.0
 uvicorn[standard]>=0.30.0
 pydantic>=2.9.0
 
+# ── Persistence (PostgreSQL via SQLModel + Alembic) ───────────────────────────
+sqlmodel>=0.0.22       # SQLAlchemy 2 + Pydantic v2 models
+alembic>=1.13.0        # schema migrations
+psycopg[binary]>=3.2.0 # PostgreSQL driver (postgresql+psycopg://). SQLite uses stdlib.
+
 # ── Tests ─────────────────────────────────────────────────────────────────────
 pytest>=8.0.0
 httpx>=0.27.0          # required by fastapi.testclient (Starlette TestClient)
