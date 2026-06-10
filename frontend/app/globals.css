@@ -47,3 +47,8 @@ html, body {
   0% { transform: translateY(-100%); }
   100% { transform: translateY(100vh); }
 }
+
+@keyframes shimmer {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(240%); }
+}
