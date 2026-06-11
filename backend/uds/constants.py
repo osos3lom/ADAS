@@ -9,6 +9,13 @@ from __future__ import annotations
 
 from typing import List
 
+# ── UDS wire format (how these tables map onto the bytes) ─────────────────────
+#   Request : [ SID, sub-function/data... ]            e.g. 22 F1 90
+#   Positive: [ SID + 0x40, echoed-bytes, payload... ] e.g. 62 F1 90 ..   (0x22 -> 0x62)
+#   Negative: [ 0x7F, SID, NRC ]                        e.g. 7F 22 31
+# SERVICE_NAMES is keyed by the request SID; NRC_NAMES decodes the 3rd byte of a
+# negative response; DID_NAMES decodes the 16-bit data identifier in 0x22/0x2E.
+
 SERVICE_NAMES: dict[int, str] = {
     0x10: "DiagnosticSessionControl",
     0x11: "ECUReset",

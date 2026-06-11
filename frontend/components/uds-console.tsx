@@ -84,17 +84,17 @@ export function UDSConsole() {
       <div className="flex flex-wrap gap-1.5">
         {QUICK_COMMANDS.map(qc => (
           <button key={qc.label} onClick={() => sendCommand(qc.label)}
-            className="text-xs font-mono px-2 py-1 bg-gray-800 hover:bg-gray-700 border border-gray-700 hover:border-cyan-700 text-gray-300 hover:text-cyan-300 rounded transition-colors">
-            <span className="text-cyan-500">{qc.label}</span>
-            <span className="text-gray-500 ml-1.5">{qc.desc}</span>
+            className="text-xs font-mono px-2 py-1 glass-well hover:border-[hsl(var(--accent)/0.45)] text-[hsl(var(--text-secondary))] hover:text-[hsl(var(--accent))] transition-colors duration-150">
+            <span className="text-[hsl(var(--accent))]">{qc.label}</span>
+            <span className="text-[hsl(var(--text-muted))] ml-1.5">{qc.desc}</span>
           </button>
         ))}
       </div>
 
       {/* Terminal output */}
-      <div ref={termRef}
-        className="flex-1 min-h-0 bg-black/60 border border-gray-800 rounded-lg p-3 overflow-y-auto font-mono text-xs space-y-1.5"
-        style={{ maxHeight: '280px' }}>
+      <div ref={termRef} aria-live="polite"
+        className="flex-1 min-h-0 rounded-[var(--radius-md)] border border-[hsl(var(--glass-border)/0.35)] bg-[hsl(var(--surface-1)/0.92)] p-3 overflow-y-auto font-mono text-xs space-y-1.5"
+        style={{ maxHeight: '280px', boxShadow: 'inset 0 2px 12px hsl(222 47% 2% / 0.5)' }}>
         {history.length === 0 && (
           <div className="text-gray-600">
             <div>╔══════════════════════════════════════════════════════╗</div>
@@ -139,7 +139,7 @@ export function UDSConsole() {
       </div>
 
       {/* Input row */}
-      <div className="flex items-center gap-2 bg-black/60 border border-gray-700 rounded-lg px-3 py-2 focus-within:border-cyan-700">
+      <div className="flex items-center gap-2 rounded-[var(--radius-md)] border border-[hsl(var(--glass-border)/0.4)] bg-[hsl(var(--surface-1)/0.92)] px-3 py-2 focus-within:border-[hsl(var(--accent)/0.55)] transition-colors duration-150">
         <Terminal className="w-3.5 h-3.5 text-cyan-600 shrink-0" />
         <span className="text-cyan-600 font-mono text-xs select-none">UDS&gt;</span>
         <input
@@ -152,11 +152,11 @@ export function UDSConsole() {
           className="flex-1 bg-transparent font-mono text-xs text-cyan-300 placeholder-gray-700 outline-none"
           spellCheck={false}
         />
-        <button onClick={() => sendCommand(input)} disabled={loading || !input.trim()}
+        <button onClick={() => sendCommand(input)} disabled={loading || !input.trim()} aria-label="Send command"
           className="text-cyan-600 hover:text-cyan-400 disabled:text-gray-700 transition-colors">
           <Send className="w-3.5 h-3.5" />
         </button>
-        <button onClick={() => setHistory([])} className="text-gray-600 hover:text-gray-400 transition-colors">
+        <button onClick={() => setHistory([])} aria-label="Clear terminal" className="text-gray-600 hover:text-gray-400 transition-colors">
           <Trash className="w-3.5 h-3.5" />
         </button>
       </div>

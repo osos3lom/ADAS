@@ -38,11 +38,11 @@ export function SystemLog({ log }: Props) {
       {/* Filter tabs */}
       <div className="flex gap-1 flex-wrap">
         {sources.map(src => (
-          <button key={src} onClick={() => setFilter(src)}
-            className={cn("text-xs font-mono px-2 py-1 rounded border transition-colors",
+          <button key={src} onClick={() => setFilter(src)} aria-pressed={filter === src}
+            className={cn("text-xs font-mono px-2 py-1 rounded-[var(--radius-sm)] border transition-colors duration-150",
               filter === src
-                ? "bg-gray-700 border-gray-500 text-gray-100"
-                : "bg-gray-800/60 border-gray-800 text-gray-500 hover:text-gray-300"
+                ? "bg-[hsl(var(--surface-4))] border-[hsl(var(--accent)/0.45)] text-[hsl(var(--text-primary))]"
+                : "glass-well text-[hsl(var(--text-muted))] hover:text-[hsl(var(--text-secondary))]"
             )}>
             {src}
           </button>

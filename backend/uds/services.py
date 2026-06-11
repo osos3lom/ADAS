@@ -158,6 +158,12 @@ def handle_read_did(req: List[int], state: SimulationState) -> Result:
     response_bytes = [0x62, req[1], req[2]]
     interp = ""
 
+    # Each physical value is encoded as a fixed-point big-endian integer so it
+    # survives the byte transport, then decoded by the client. The scaling
+    # factor below is per-DID and must match the frontend's reader exactly:
+    #   speed / TTC / lane-offset -> x100   (0.01 resolution)
+    #   target distance / speed    -> x10    (0.1  resolution)
+    #   modes / statuses / counts  -> single enum byte
     v = state.vehicle
     a = state.adas
     ecu = state.ecu
@@ -223,6 +229,13 @@ def handle_read_did(req: List[int], state: SimulationState) -> Result:
 
 
 # ── 0x27 SecurityAccess ───────────────────────────────────────────────────────
+#
+# Two-step seed/key challenge (the console hint surfaces this flow):
+#   1. 27 01            -> ECU replies 67 01 <4-byte random seed>
+#   2. 27 02 <4 bytes>  -> client must send key = seed XOR 0xCAFEBABE
+# A correct key flips ``ecu.security_unlocked`` so 0x2E writes are allowed.
+# The XOR is a deliberately trivial *demo* algorithm — real ECUs use a secret
+# seed/key function. Requires an Extended session (10 03) first.
 
 def handle_security_access(req: List[int], state: SimulationState) -> Result:
     sub = req[1] if len(req) > 1 else None

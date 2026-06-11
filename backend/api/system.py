@@ -20,7 +20,7 @@ from typing import Dict, List
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from can.interface import is_available as can_available
+from canbus.interface import is_available as can_available
 from db import database_configured, database_enabled, db_ping
 from db import repository
 from ros2.bridge import is_available as ros2_available

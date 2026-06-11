@@ -8,7 +8,7 @@ as a diagnostic tester.
 The end goal is the full robotics stack (CARLA → ROS2 → SocketCAN UDS), run on a single
 workstation: **CARLA 0.9.15 native on Windows (GPU) + ROS2 Humble in WSL2 Ubuntu 22.04**.
 This repository is built up to that in phases — see the full learning roadmap in
-[docs/PLAN.md](docs/PLAN.md) and the bring-up runbook in [docs/PHASE1_SETUP.md](docs/PHASE1_SETUP.md).
+[ADAS-master-plan-v3.md](ADAS-master-plan-v3.md).
 
 > **Status: Phase 0 complete (+ persistence & admin UI).** A Next.js dashboard that
 > doubles as an **Admin / Control Center** (per-service health + deep links) and a runnable
@@ -136,7 +136,7 @@ CI runs these plus a frontend build on every push (`.github/workflows/ci.yml`).
 ## Roadmap
 
 Full learning-oriented detail (LEARN / READ / BUILD / CHECK per phase) lives in
-[docs/PLAN.md](docs/PLAN.md); the setup runbook is [docs/PHASE1_SETUP.md](docs/PHASE1_SETUP.md).
+[ADAS-master-plan-v3.md](ADAS-master-plan-v3.md).
 
 - **Phase 0 — Foundation (done):** runnable FastAPI backend, dashboard↔backend
   proxy, Docker, tests, CI — **plus** PostgreSQL persistence and the Admin / Control Center.
@@ -146,7 +146,7 @@ Full learning-oriented detail (LEARN / READ / BUILD / CHECK per phase) lives in
   FSM, C++ control (Pure Pursuit). Reuse the thresholds in `simulation/`.
 - **Phase 3 — Virtual ECU + real UDS over CAN:** rclpy bridge + ISO 14229 over ISO-TP
   (`python-can` virtual bus + pure-Python `isotp` first; real `vcan0` via a custom WSL2
-  kernel later). Wire `backend/ros2/`; rename `backend/can/` → `backend/canbus/`.
+  kernel later). Wire `backend/ros2/`. (`backend/can/` already renamed to `backend/canbus/`.)
 - **Phase 4 — Tester scripts:** `read_adas_status.py`, `inject_fault.py`,
   `write_adas_param.py`, `clear_dtcs.py` over real CAN.
 - **Phase 5 — CI + docs + demo:** replay-based integration test, colcon build in CI,

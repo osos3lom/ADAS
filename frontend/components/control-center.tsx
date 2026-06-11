@@ -102,11 +102,12 @@ export function ControlCenter() {
     <div className="space-y-4">
       {/* Data source banner */}
       <div
+        role="status"
         className={cn(
-          "flex items-center gap-2 rounded-xl border px-4 py-2.5 font-mono text-xs",
+          "flex items-center gap-2 rounded-[var(--radius-lg)] border px-4 py-2.5 font-mono text-xs",
           connected
-            ? "border-emerald-800 bg-emerald-950/40 text-emerald-300"
-            : "border-amber-800 bg-amber-950/40 text-amber-300",
+            ? "glass-tint-ok text-[hsl(var(--ok))]"
+            : "glass-tint-warn text-[hsl(var(--warn))]",
         )}
       >
         <span
@@ -133,7 +134,7 @@ export function ControlCenter() {
       </section>
 
       {/* Config editor */}
-      <section className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+      <section className="glass-card p-4">
         <h2 className="flex items-center gap-2 mb-3 font-mono text-xs uppercase tracking-widest text-gray-400">
           Endpoint configuration
           {config && !config.persisted && (
@@ -228,7 +229,7 @@ function HistoryTable<T>({
   render,
 }: HistoryTableProps<T>) {
   return (
-    <section className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+    <section className="glass-card overflow-hidden">
       <div className="flex items-center gap-2 px-4 py-2.5 border-b border-gray-800">
         <span className="flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-gray-400">
           {icon} {title}

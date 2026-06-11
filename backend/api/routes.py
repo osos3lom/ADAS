@@ -24,7 +24,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from observers import emit_run
-from simulation.engine import tick_simulation
+from simbackends import AVAILABLE_BACKENDS, DEFAULT_BACKEND, get_backend
 from simulation.state import add_dtc, add_log, get_sim_state
 from uds.processor import process_uds
 
@@ -54,6 +54,7 @@ FAULTS = [
 
 class ScenarioBody(BaseModel):
     scenario: str
+    backend: str = DEFAULT_BACKEND  # Phase 1B: SimBackend selection seam
 
 
 class UDSBody(BaseModel):
@@ -68,9 +69,12 @@ class InjectFaultBody(BaseModel):
 
 @router.get("/state")
 def get_state():
-    state = get_sim_state()
+    backend = get_backend()
+    state = backend.state
     if state.running:
-        tick_simulation(state)
+        # Events from the step are also surfaced on StepResult for Phase 4+
+        # agent consumers; persistence observers fire internally as before.
+        state = backend.step().state
     return state.model_dump(by_alias=True)
 
 
@@ -80,27 +84,19 @@ def get_state():
 def set_scenario(body: ScenarioBody):
     if body.scenario not in VALID_SCENARIOS:
         return JSONResponse({"error": "Invalid scenario"}, status_code=400)
+    if body.backend not in AVAILABLE_BACKENDS:
+        return JSONResponse({"error": f"Unknown backend: {body.backend}"}, status_code=400)
+    if body.backend != DEFAULT_BACKEND:
+        return JSONResponse(
+            {"error": f"Backend '{body.backend}' not available until Phase 5B"},
+            status_code=501,
+        )
 
-    state = get_sim_state()
-    from simulation.state import now_ms
-
-    state.scenario = body.scenario
-    state.scenario_time = 0
-    state.scenario_start_wall = now_ms()
-    state.scenario_progress = 0
-
-    # Reset ADAS on scenario change
-    state.adas.aeb_status = "standby"
-    state.adas.ldw_status = "inactive"
-    state.adas.acc_status = "inactive"
-    state.vehicle.brake_pressure = 0
-
-    label = SCENARIO_LABELS[body.scenario]
-    add_log(state, "info", "SYSTEM", f"Scenario switched → {label}")
-    add_log(state, "info", "CARLA", f"World: spawning scenario actors for {label}")
+    backend = get_backend(body.backend)
+    backend.reset(body.scenario)  # logs the scenario-switch entries (legacy parity)
     emit_run(body.scenario)
 
-    return {"ok": True, "scenario": body.scenario}
+    return {"ok": True, "scenario": body.scenario, "backend": backend.name}
 
 
 # ── POST /uds ─────────────────────────────────────────────────────────────────

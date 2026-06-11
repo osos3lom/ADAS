@@ -49,13 +49,13 @@ export function DtcManager({ dtcs, onRefresh }: Props) {
       {/* Summary bar */}
       <div className="grid grid-cols-3 gap-2">
         {[
-          { label: 'Active', count: dtcs.filter(d=>d.status==='active').length, color: 'text-red-400 bg-red-950/30 border-red-800' },
-          { label: 'Pending', count: dtcs.filter(d=>d.status==='pending').length, color: 'text-amber-400 bg-amber-950/20 border-amber-800' },
-          { label: 'Stored', count: dtcs.filter(d=>d.status==='stored').length, color: 'text-gray-400 bg-gray-800/40 border-gray-700' },
+          { label: 'Active', count: dtcs.filter(d=>d.status==='active').length, color: 'text-[hsl(var(--danger))] glass-tint-danger' },
+          { label: 'Pending', count: dtcs.filter(d=>d.status==='pending').length, color: 'text-[hsl(var(--warn))] glass-tint-warn' },
+          { label: 'Stored', count: dtcs.filter(d=>d.status==='stored').length, color: 'text-[hsl(var(--text-secondary))] glass-well' },
         ].map(s => (
-          <div key={s.label} className={cn("rounded-lg border p-2 text-center", s.color)}>
-            <div className="text-xs font-mono text-gray-500 mb-0.5">{s.label}</div>
-            <div className="text-2xl font-mono font-black">{s.count}</div>
+          <div key={s.label} className={cn("rounded-[var(--radius-md)] border p-2 text-center", s.color)}>
+            <div className="panel-title mb-0.5">{s.label}</div>
+            <div className="display-numeral text-2xl">{s.count}</div>
           </div>
         ))}
       </div>

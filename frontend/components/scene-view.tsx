@@ -59,7 +59,10 @@ export function SceneView({ state }: Props) {
   }, [quality, stepTier]);
 
   return (
-    <div className="relative flex h-full min-h-[480px] flex-col overflow-hidden rounded-xl border border-white/10 bg-[#070b12] shadow-2xl">
+    <div
+      className="relative flex h-full min-h-[480px] flex-col overflow-hidden rounded-[var(--radius-lg)] border border-[hsl(var(--glass-border)/0.45)] bg-[hsl(var(--surface-1))]"
+      style={{ boxShadow: "var(--shadow-card), inset 0 1px 0 hsl(var(--glass-highlight) / 0.04)" }}
+    >
       {!webglOk ? (
         <WebGLFallback state={state} />
       ) : (

@@ -35,19 +35,19 @@ export function VehicleTelemetry({ state }: Props) {
   const accelColor = v.acceleration > 0 ? "text-emerald-400" : v.acceleration < -2 ? "text-red-400" : "text-cyan-400";
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 h-full">
+    <div className="glass-card glass-card-hover p-4 h-full">
       <div className="flex items-center gap-2 mb-4">
-        <Activity className="w-4 h-4 text-cyan-500" />
-        <span className="text-xs font-mono text-gray-300 uppercase tracking-widest">Vehicle Telemetry</span>
-        <span className="ml-auto w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+        <Activity className="w-4 h-4 text-[hsl(var(--accent))]" />
+        <span className="panel-title">Vehicle Telemetry</span>
+        <span className="ml-auto w-2 h-2 rounded-full bg-[hsl(var(--ok))] animate-pulse" aria-label="streaming" />
       </div>
 
       {/* Speed big display */}
-      <div className="text-center mb-4 py-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
-        <div className={cn("text-4xl font-mono font-black tabular-nums", speedColor)}>
+      <div className="text-center mb-4 py-3 glass-well">
+        <div className={cn("display-numeral text-[length:var(--text-display)]", speedColor)}>
           {v.speed.toFixed(1)}
         </div>
-        <div className="text-gray-400 text-xs font-mono mt-1">KM/H</div>
+        <div className="text-[hsl(var(--text-muted))] text-xs font-mono mt-1">KM/H</div>
         <div className="mt-2 px-6">
           <GaugeBar value={v.speed} max={160} color={v.speed > 100 ? "bg-amber-500" : "bg-cyan-500"} />
         </div>
@@ -82,8 +82,8 @@ export function VehicleTelemetry({ state }: Props) {
       </div>
 
       {/* ROS2 node status */}
-      <div className="mt-4 pt-3 border-t border-gray-800">
-        <div className="text-xs text-gray-500 font-mono mb-2">ROS2 NODES</div>
+      <div className="mt-4 pt-3 border-t border-[hsl(var(--glass-border)/0.3)]">
+        <div className="panel-title mb-2">ROS2 Nodes</div>
         <div className="grid grid-cols-2 gap-1">
           {['perception','planning','control','ecu_bridge'].map(node => (
             <div key={node} className="flex items-center gap-1.5">

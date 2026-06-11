@@ -26,19 +26,17 @@ export function SpeedChart({ state }: Props) {
   }));
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+    <div className="glass-card glass-card-hover p-4">
       <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-mono text-gray-300 uppercase tracking-widest">
-          Speed &amp; TTC History
-        </span>
+        <span className="panel-title">Speed &amp; TTC History</span>
         <div className="flex gap-4">
           <div className="flex items-center gap-1.5">
-            <span className="w-3 h-0.5 bg-cyan-500 inline-block" />
-            <span className="text-xs text-gray-400 font-mono">Speed km/h</span>
+            <span className="w-3 h-0.5 bg-[hsl(var(--accent))] inline-block" />
+            <span className="text-xs text-[hsl(var(--text-secondary))] font-mono">Speed km/h</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-3 h-0.5 bg-amber-500 inline-block" />
-            <span className="text-xs text-gray-400 font-mono">TTC s</span>
+            <span className="w-3 h-0.5 bg-[hsl(var(--warn))] inline-block" />
+            <span className="text-xs text-[hsl(var(--text-secondary))] font-mono">TTC s</span>
           </div>
         </div>
       </div>
@@ -54,7 +52,7 @@ export function SpeedChart({ state }: Props) {
               <stop offset="95%" stopColor="var(--color-ttc)" stopOpacity={0} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="2 4" stroke="#1f2937" />
+          <CartesianGrid strokeDasharray="2 4" stroke="hsl(218 26% 16%)" />
           <XAxis
             dataKey="time"
             tick={{ fill: "#4b5563", fontSize: 9, fontFamily: "monospace" }}

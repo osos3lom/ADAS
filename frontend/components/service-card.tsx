@@ -26,7 +26,7 @@ export function ServiceCard({ service }: Props) {
   const isLive = ["ok", "online", "connected"].includes(service.status);
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 flex flex-col gap-2">
+    <div className="glass-card glass-card-hover p-4 flex flex-col gap-2">
       <div className="flex items-center gap-2">
         <span
           className={cn(

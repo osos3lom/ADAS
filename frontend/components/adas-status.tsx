@@ -54,11 +54,11 @@ export function AdasStatus({ state }: Props) {
   };
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 h-full flex flex-col gap-4">
+    <div className="glass-card glass-card-hover p-4 h-full flex flex-col gap-4">
       <div className="flex items-center gap-2">
-        <Shield className="w-4 h-4 text-cyan-500" />
-        <span className="text-xs font-mono text-gray-300 uppercase tracking-widest">ADAS Status</span>
-        <span className="ml-auto text-xs text-gray-500 font-mono">T+{state.scenarioTime.toFixed(1)}s</span>
+        <Shield className="w-4 h-4 text-[hsl(var(--accent))]" />
+        <span className="panel-title">ADAS Status</span>
+        <span className="ml-auto text-xs text-[hsl(var(--text-muted))] font-mono">T+{state.scenarioTime.toFixed(1)}s</span>
       </div>
 
       {/* Three ADAS system badges */}
@@ -69,8 +69,8 @@ export function AdasStatus({ state }: Props) {
       </div>
 
       {/* Target info */}
-      <div className="bg-gray-800/40 rounded-lg p-3 border border-gray-700/50">
-        <div className="text-xs text-gray-500 font-mono uppercase mb-2">Target Vehicle</div>
+      <div className="glass-well p-3">
+        <div className="panel-title mb-2">Target Vehicle</div>
         <div className="grid grid-cols-2 gap-x-4 gap-y-1">
           <div className="text-xs font-mono text-gray-400">Present</div>
           <div className={cn("text-xs font-mono font-bold", a.targetPresent ? "text-emerald-400" : "text-red-400")}>
@@ -88,8 +88,8 @@ export function AdasStatus({ state }: Props) {
       </div>
 
       {/* ECU state */}
-      <div className="bg-gray-800/40 rounded-lg p-3 border border-gray-700/50">
-        <div className="text-xs text-gray-500 font-mono uppercase mb-2">ECU State</div>
+      <div className="glass-well p-3">
+        <div className="panel-title mb-2">ECU State</div>
         <div className="space-y-0">
           <DIDRow did="0x10" label="Session" value={<span className={sessionColors[e.session] + ' font-bold'}>{e.session.toUpperCase()}</span> as unknown as string} />
           <DIDRow did="0x27" label="Security" value={e.securityUnlocked ? '🔓 UNLOCKED' : '🔒 LOCKED'} />
@@ -101,12 +101,12 @@ export function AdasStatus({ state }: Props) {
 
       {/* DTC count badge */}
       <div className={cn(
-        "rounded-lg p-3 border text-center",
+        "rounded-[var(--radius-md)] p-3 border text-center",
         state.dtcs.filter(d => d.status === 'active').length > 0
-          ? "bg-red-950/30 border-red-800" : "bg-gray-800/40 border-gray-700/50"
+          ? "glass-tint-danger" : "glass-well"
       )}>
-        <div className="text-xs text-gray-500 font-mono uppercase mb-1">Active DTCs</div>
-        <div className={cn("text-3xl font-mono font-black",
+        <div className="panel-title mb-1">Active DTCs</div>
+        <div className={cn("display-numeral text-3xl",
           state.dtcs.filter(d => d.status === 'active').length > 0 ? "text-red-400" : "text-emerald-400"
         )}>
           {state.dtcs.filter(d => d.status === 'active').length}
