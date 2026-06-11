@@ -4,7 +4,7 @@ FastAPI REST Routes
 All paths are mounted under ``/api/sim`` by :mod:`main`.
 
     GET  /api/sim/state          → current simulation state (camelCase JSON)
-    POST /api/sim/scenario       → change active scenario     {scenario}
+    POST /api/sim/scenario       → change active scenario     {scenario, backend?}
     POST /api/sim/uds            → send a UDS hex command      {command}
     POST /api/sim/clear-dtcs     → clear all stored DTCs
     POST /api/sim/inject-fault   → inject a named (or random) DTC  {code?}
@@ -13,7 +13,9 @@ All paths are mounted under ``/api/sim`` by :mod:`main`.
 
 This mirrors the contract the Next.js frontend already speaks
 (``frontend/app/api/sim/*``) so the dashboard can proxy to this backend
-unchanged.
+unchanged. Since Phase 1B the simulation is driven through the SimBackend
+seam (``simbackends``); the default ``internal`` backend is byte-identical
+to the legacy engine path.
 """
 from __future__ import annotations
 
@@ -96,7 +98,8 @@ def set_scenario(body: ScenarioBody):
     backend.reset(body.scenario)  # logs the scenario-switch entries (legacy parity)
     emit_run(body.scenario)
 
-    return {"ok": True, "scenario": body.scenario, "backend": backend.name}
+    # Response shape unchanged from the legacy route (Phase 1B: zero behavior change).
+    return {"ok": True, "scenario": body.scenario}
 
 
 # ── POST /uds ─────────────────────────────────────────────────────────────────

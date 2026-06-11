@@ -4,7 +4,10 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import type { SimulationState } from "@/types";
 import { WorkspaceSidebar, WORKSPACES, type WorkspaceId } from "@/components/layout/workspace-sidebar";
 import { DiagnoseWorkspace, type BottomTab, type View } from "@/components/workspaces/diagnose";
-import { LockedWorkspace } from "@/components/workspaces/locked";
+import { BuildWorkspace } from "@/components/workspaces/build";
+import { ResearchWorkspace } from "@/components/workspaces/research";
+import { EvalWorkspace } from "@/components/workspaces/eval";
+import { GovernWorkspace } from "@/components/workspaces/govern";
 import { cn } from "@/lib/utils";
 import { Activity, RefreshCw, ChevronDown, WifiOff } from "lucide-react";
 
@@ -160,12 +163,14 @@ export default function Platform() {
 
         {/* ── Workspace content ── */}
         <main className="flex-1 w-full max-w-[1600px] mx-auto px-4 py-4">
-          {workspace === "diagnose" ? (
+          {workspace === "diagnose" && (
             <DiagnoseWorkspace state={state} onRefresh={fetchState}
               activeTab={activeTab} onTabChange={setActiveTab} view={view} onViewChange={setView} />
-          ) : (
-            <LockedWorkspace workspace={activeWs} />
           )}
+          {workspace === "build" && <BuildWorkspace />}
+          {workspace === "research" && <ResearchWorkspace />}
+          {workspace === "eval" && <EvalWorkspace />}
+          {workspace === "govern" && <GovernWorkspace />}
         </main>
       </div>
 

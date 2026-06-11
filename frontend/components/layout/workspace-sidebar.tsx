@@ -11,7 +11,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-/** The five workspaces (Plan v3 §5.10). Only Diagnose is live in Phase 1. */
+/** The five workspaces (Plan v3 §5.10). Diagnose is live; the rest are UI previews. */
 export type WorkspaceId = "diagnose" | "build" | "research" | "eval" | "govern";
 
 export interface Workspace {
@@ -19,16 +19,16 @@ export interface Workspace {
   label: string;
   icon: LucideIcon;
   enabled: boolean;
-  phase: string; // when it unlocks
+  phase: string; // when the agent backend lands
   blurb: string;
 }
 
 export const WORKSPACES: Workspace[] = [
-  { id: "diagnose", label: "Diagnose", icon: Stethoscope, enabled: true,  phase: "Live",     blurb: "Live sim, UDS console, DTCs, incident triage" },
-  { id: "build",    label: "Build",    icon: Hammer,      enabled: false, phase: "Phase 6C", blurb: "Proposal inbox, sandbox builder, approval packets" },
-  { id: "research", label: "Research", icon: FlaskConical, enabled: false, phase: "Phase 4",  blurb: "Scout/Analyst insights feed, knowledge base" },
-  { id: "eval",     label: "Eval",     icon: Gauge,       enabled: false, phase: "Phase 5",  blurb: "Closed-loop runs, golden-bank gates, replays" },
-  { id: "govern",   label: "Govern",   icon: ShieldCheck, enabled: false, phase: "Phase 7",  blurb: "Autonomy dial, audit, kill-switch, budgets" },
+  { id: "diagnose", label: "Diagnose", icon: Stethoscope,  enabled: true, phase: "Live",    blurb: "Live sim, UDS console, DTCs, incident triage" },
+  { id: "build",    label: "Build",    icon: Hammer,       enabled: true, phase: "Preview", blurb: "Proposal inbox, sandbox builder, approval packets" },
+  { id: "research", label: "Research", icon: FlaskConical, enabled: true, phase: "Preview", blurb: "Scout/Analyst insights feed, knowledge base" },
+  { id: "eval",     label: "Eval",     icon: Gauge,        enabled: true, phase: "Preview", blurb: "Closed-loop runs, golden-bank gates, replays" },
+  { id: "govern",   label: "Govern",   icon: ShieldCheck,  enabled: true, phase: "Preview", blurb: "Autonomy dial, audit, kill-switch, budgets" },
 ];
 
 interface Props {
@@ -65,7 +65,7 @@ export function WorkspaceSidebar({ active, onSelect }: Props) {
             onClick={() => ws.enabled && onSelect(ws.id)}
             disabled={!ws.enabled}
             aria-current={isActive ? "page" : undefined}
-            title={ws.enabled ? ws.blurb : `${ws.blurb} — unlocks in ${ws.phase}`}
+            title={ws.blurb}
             className={cn(
               "group relative flex items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 py-2 text-left",
               "transition-colors duration-150",
@@ -82,8 +82,8 @@ export function WorkspaceSidebar({ active, onSelect }: Props) {
             )}
             <Icon className={cn("w-4 h-4 shrink-0", isActive && "text-[hsl(var(--accent))]")} />
             <span className="hidden sm:block text-xs font-medium flex-1">{ws.label}</span>
-            {!ws.enabled && (
-              <span className="hidden lg:block text-[9px] font-mono px-1.5 py-0.5 rounded-full border border-[hsl(var(--glass-border)/0.4)] text-[hsl(var(--text-faint))]">
+            {ws.phase !== "Live" && (
+              <span className="hidden lg:block text-[9px] font-mono px-1.5 py-0.5 rounded-full border border-[hsl(var(--accent-2)/0.35)] text-[hsl(var(--accent-2))]">
                 {ws.phase}
               </span>
             )}
