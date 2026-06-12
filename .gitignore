@@ -41,3 +41,11 @@ htmlcov/
 ros2_ws/build/
 ros2_ws/install/
 ros2_ws/log/
+
+# Runtime artifacts from run_all / diag / probe tooling
+diag_output.txt
+probe_output.txt
+bringup_log.txt
+stack_log.txt
+phase2_gate_report.txt
+gate_run_log.txt

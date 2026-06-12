@@ -10,6 +10,7 @@ the simulation and API keep working without a database.
 """
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 from sqlmodel import select
@@ -18,6 +19,7 @@ from db.engine import database_enabled, session_scope
 from db.models import (
     AppConfig,
     DtcRecord,
+    IncidentRecord,
     LogRecord,
     SimRun,
     TelemetrySample,
@@ -86,6 +88,27 @@ def start_run(scenario: str) -> None:
         s.add(SimRun(scenario=scenario))
 
 
+def record_incident(payload: Dict[str, object]) -> None:
+    if not database_enabled():
+        return
+    with session_scope() as s:
+        s.add(
+            IncidentRecord(
+                incident_type=str(payload.get("incident_type", "collision")),
+                at_fault=bool(payload.get("at_fault", True)),
+                scenario=str(payload.get("scenario", "")),
+                seed=int(payload["seed"]) if payload.get("seed") is not None else None,
+                sim_run_id=int(payload["sim_run_id"]) if payload.get("sim_run_id") is not None else None,
+                backend_name=str(payload.get("backend_name", "internal")),
+                dtc_code=str(payload.get("dtc_code", "P1C00")),
+                ttc_trace=str(payload.get("ttc_trace", "[]")),
+                freeze_frame=str(payload.get("freeze_frame", "{}")),
+                policy_decision_id=str(payload["policy_decision_id"]) if payload.get("policy_decision_id") else None,
+                timestamp_ms=int(payload.get("timestamp_ms", 0)),
+            )
+        )
+
+
 # ── Readers (back the /api/history/* endpoints) ───────────────────────────────
 
 def list_dtcs(limit: int = 100, offset: int = 0) -> List[dict]:
@@ -106,6 +129,35 @@ def list_runs(limit: int = 100, offset: int = 0) -> List[dict]:
 
 def list_telemetry(limit: int = 200, offset: int = 0) -> List[dict]:
     return _list(TelemetrySample, limit, offset)
+
+
+def list_incidents(
+    limit: int = 100,
+    offset: int = 0,
+    scenario: Optional[str] = None,
+    incident_type: Optional[str] = None,
+    at_fault: Optional[bool] = None,
+) -> List[dict]:
+    if not database_enabled():
+        return []
+    limit, offset = _clamp(limit, offset)
+    with session_scope() as s:
+        q = select(IncidentRecord).order_by(IncidentRecord.id.desc()).offset(offset).limit(limit)
+        if scenario is not None:
+            q = q.where(IncidentRecord.scenario == scenario)
+        if incident_type is not None:
+            q = q.where(IncidentRecord.incident_type == incident_type)
+        if at_fault is not None:
+            q = q.where(IncidentRecord.at_fault == at_fault)
+        return [r.model_dump() for r in s.exec(q).all()]
+
+
+def get_incident(incident_id: int) -> Optional[dict]:
+    if not database_enabled():
+        return None
+    with session_scope() as s:
+        row = s.get(IncidentRecord, incident_id)
+        return row.model_dump() if row else None
 
 
 def _list(model, limit: int, offset: int) -> List[dict]:
@@ -132,8 +184,6 @@ def get_config(key: str) -> Optional[str]:
 def set_config(key: str, value: str) -> None:
     if not database_enabled():
         return
-    from datetime import datetime, timezone
-
     with session_scope() as s:
         row = s.get(AppConfig, key)
         if row is None:

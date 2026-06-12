@@ -10,11 +10,14 @@ workstation: **CARLA 0.9.15 native on Windows (GPU) + ROS2 Humble in WSL2 Ubuntu
 This repository is built up to that in phases — see the full learning roadmap in
 [ADAS-master-plan-v3.md](ADAS-master-plan-v3.md).
 
-> **Status: Phase 0 complete (+ persistence & admin UI).** A Next.js dashboard that
-> doubles as an **Admin / Control Center** (per-service health + deep links) and a runnable
-> Python FastAPI backend that simulates the ADAS vehicle, serves a working UDS server over
-> REST, and **persists DTCs / logs / UDS audit / sim runs to PostgreSQL**. CARLA / ROS2 /
-> real SocketCAN are Phase 1+.
+> **Status (2026-06-12): Phases 0–2 built and running.** Phase 0: Next.js
+> **Admin / Control Center** dashboard + FastAPI backend with a working UDS server and
+> **PostgreSQL persistence**. Phases 1–2: the real robotics stack is live —
+> **CARLA 0.9.15 (Windows GPU) → carla-ros-bridge → C++ LiDAR perception →
+> Python AEB/LDW/ACC planning FSM → C++ Pure Pursuit/PID control → back into CARLA**,
+> all in ROS2 Humble on WSL2 with the closed-loop data path verified end-to-end
+> (planning/control at 20 Hz). Remaining for the Phase 2 gate: the AEB-with-traffic demo.
+> Single source of truth for plan + status: [ADAS-master-plan-v3.md](ADAS-master-plan-v3.md).
 
 ---
 
@@ -84,6 +87,43 @@ cd frontend
 BACKEND_URL=http://localhost:8000 npm run dev     # PowerShell: $env:BACKEND_URL="http://localhost:8000"; npm run dev
 ```
 
+### Option C — Full robotics stack (CARLA + ROS2, Phases 1–2)
+
+One machine: CARLA native on Windows (`D:\adas\CARLA_0.9.15`), ROS2 Humble in WSL2 Ubuntu 22.04.
+
+```bash
+# WSL2, one-time build — artifacts go to ext4 (~/adas_build, ~/adas_install);
+# building under /mnt/c fails on NTFS permissions:
+bash /mnt/c/Users/Asus/Documents/GitHub/ADAS/scripts/build_ws.sh
+```
+
+Then either double-click `restart_all.bat` (starts/repairs everything: CARLA + bridge +
+ADAS stack + diagnostics), or run manually:
+
+```bash
+source /mnt/c/Users/Asus/Documents/GitHub/ADAS/scripts/wsl_env.sh   # ROS2 + overlay + FastDDS localhost
+ros2 launch ros2_ws/launch/adas_bringup.launch.py    # bridge + ego (Tesla M3) + 8 sensors, sync 20 Hz
+ros2 launch ros2_ws/launch/adas_stack.launch.py      # perception → planning → control
+ros2 topic echo /adas/state                          # aebStatus flips standby → warning → active
+```
+
+| Helper | Purpose |
+|--------|---------|
+| `scripts/build_ws.sh` | colcon build with ext4 build/install bases |
+| `scripts/wsl_env.sh` | env: overlay, `ROS_DOMAIN_ID=42`, FastDDS + `ROS_LOCALHOST_ONLY=1` |
+| `run_all.bat` / `restart_all.bat` | restart pipeline (the latter also reboots CARLA) |
+| `follow_ego.bat` | chase-cam pinned behind the ego + live speed readout |
+| `run_probe3.bat`, `scripts/diag.sh` | topic-rate health checks → `probe_output.txt` / `diag_output.txt` |
+
+ROS2 topics: `/adas/obstacles` (markers), `/adas/nearest_obstacle` `[range, closing, x, y]`,
+`/adas/state` (JSON), `/adas/aeb_command`, `/adas/acc_setpoint_mps`, `/adas/ldw_alert`,
+`/adas/dtc_event` → ecu_bridge → `/api/incidents`.
+
+Troubleshooting (full list in the master plan's *Status Log*): use `--no-daemon` with
+`ros2 node/topic list` (the daemon hangs on this WSL2); per-vehicle topics like odometry
+come from **pseudo-sensors** declared in `ros2_ws/config/adas_objects.json`; never
+colcon-build under `/mnt/c`.
+
 ---
 
 ## API (`/api/sim/*`)
@@ -138,15 +178,19 @@ CI runs these plus a frontend build on every push (`.github/workflows/ci.yml`).
 Full learning-oriented detail (LEARN / READ / BUILD / CHECK per phase) lives in
 [ADAS-master-plan-v3.md](ADAS-master-plan-v3.md).
 
-- **Phase 0 — Foundation (done):** runnable FastAPI backend, dashboard↔backend
+- **Phase 0 — Foundation (✅ done):** runnable FastAPI backend, dashboard↔backend
   proxy, Docker, tests, CI — **plus** PostgreSQL persistence and the Admin / Control Center.
-- **Phase 1 — Simulation backbone:** WSL2 Ubuntu 22.04 + ROS2 Humble + CARLA 0.9.15 on
-  Windows; spawn ego vehicle, publish camera/LiDAR/IMU topics (`ros2_ws/`).
-- **Phase 2 — ADAS stack:** C++ perception (LiDAR clustering), Python planning
-  FSM, C++ control (Pure Pursuit). Reuse the thresholds in `simulation/`.
-- **Phase 3 — Virtual ECU + real UDS over CAN:** rclpy bridge + ISO 14229 over ISO-TP
-  (`python-can` virtual bus + pure-Python `isotp` first; real `vcan0` via a custom WSL2
-  kernel later). Wire `backend/ros2/`. (`backend/can/` already renamed to `backend/canbus/`.)
+- **Phase 1 — Simulation backbone (✅ 1A/1B done, 1C pending):** WSL2 + ROS2 Humble +
+  CARLA 0.9.15 on Windows; carla-ros-bridge built (23/23 packages); ego + camera/LiDAR/
+  IMU/radar/GNSS topics live; SimBackend abstraction in `backend/simbackends/`.
+  Remaining: 1C frontend redesign.
+- **Phase 2 — ADAS stack (✅ built & running):** C++ perception (`adas_perception`,
+  PCL Euclidean clustering), Python planning FSM (`adas_planning` — Phase 0 thresholds
+  1:1), C++ control (`adas_control`, Pure Pursuit + PID). Closed loop verified at
+  20 Hz; AEB-with-traffic gate demo pending.
+- **Phase 3 — Virtual ECU + real UDS over CAN (next):** `adas_ecu_bridge` + ISO 14229
+  over ISO-TP (`python-can` virtual bus + pure-Python `isotp` first; real `vcan0` via a
+  custom WSL2 kernel later). Reuse `backend/uds/` wholesale; incidents API end-to-end.
 - **Phase 4 — Tester scripts:** `read_adas_status.py`, `inject_fault.py`,
   `write_adas_param.py`, `clear_dtcs.py` over real CAN.
 - **Phase 5 — CI + docs + demo:** replay-based integration test, colcon build in CI,
@@ -157,8 +201,12 @@ Full learning-oriented detail (LEARN / READ / BUILD / CHECK per phase) lives in
 ## Layout
 
 ```
-backend/        FastAPI app, simulation engine, UDS server, Phase-3 placeholders
+backend/        FastAPI app, simulation engine, UDS server, SimBackends, incidents API
 frontend/       Next.js dashboard (+ standalone TS simulation/UDS mock)
+ros2_ws/        ROS2 workspace: ros-bridge + adas_perception/planning/control/ecu_bridge,
+                launch/ (adas_bringup, adas_stack), config/adas_objects.json
+scripts/        wsl_env.sh, build_ws.sh, diag/probe scripts, follow_ego.py, UDS testers (Phase 4)
+*.bat           Windows launchers (restart_all, run_all, follow_ego, probes)
 Dockerfile      frontend image (build context = repo root)
 docker-compose.yml
 ```

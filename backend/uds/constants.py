@@ -56,6 +56,25 @@ DID_NAMES: dict[int, str] = {
 }
 
 
+# ── Validation incident DTC range (Plan v3 §5.9) ─────────────────────────────
+# P1C00–P1CFF is reserved for closed-loop simulation validation incidents.
+# Every at-fault event from a SimBackend raises a DTC in this range so
+# engineers can triage AV failures through the standard UDS 0x19/0x14 flow.
+
+VALIDATION_DTC_NAMES: dict[str, str] = {
+    "P1C00": "Closed-Loop Validation Incident",
+    "P1C01": "At-Fault Forward Collision",
+    "P1C02": "Road Excursion",
+    "P1C03": "Uncontrolled Lane Departure",
+    "P1C10": "Policy Late-Brake",
+    "P1C20": "Comfort Violation",
+    "P1C30": "Progress Violation (policy stalled)",
+}
+
+VALIDATION_DTC_RANGE_START = 0xC00  # P1C00
+VALIDATION_DTC_RANGE_END = 0xCFF    # P1CFF
+
+
 def to_hex(byte_list: List[int]) -> str:
     """Render a list of byte values as space-separated uppercase hex (``A0 1F``)."""
     return " ".join(f"{b & 0xFF:02X}" for b in byte_list)

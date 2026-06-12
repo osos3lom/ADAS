@@ -98,3 +98,26 @@ class AppConfig(SQLModel, table=True):
     key: str = Field(primary_key=True)
     value: str = ""
     updated_at: datetime = Field(default_factory=_utcnow)
+
+
+class IncidentRecord(SQLModel, table=True):
+    # ttc_trace / freeze_frame stored as TEXT to stay compatible with SQLite (tests) and PostgreSQL (prod)
+    __tablename__ = "incident"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    # "collision" | "road_excursion" | "lane_departure" | "sensor_fault"
+    incident_type: str = Field(index=True)
+    at_fault: bool = True
+    scenario: str = Field(index=True)
+    seed: Optional[int] = None
+    sim_run_id: Optional[int] = Field(default=None, index=True)
+    backend_name: str = "internal"
+    # P1Cxx — reserved validation DTC range (see uds/constants.py)
+    dtc_code: str = "P1C00"
+    # JSON string: [[sim_time_s, ttc_s], …] — last N samples before incident
+    ttc_trace: str = "[]"
+    # JSON string: {t, ego: {speed, accel, brake, lane_offset}, adas: {...}}
+    freeze_frame: str = "{}"
+    policy_decision_id: Optional[str] = None
+    timestamp_ms: int = _ms_field()
+    created_at: datetime = Field(default_factory=_utcnow)

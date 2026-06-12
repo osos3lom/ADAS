@@ -27,6 +27,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 import observers
 from api.history import router as history_router
+from api.incidents import router as incidents_router
 from api.routes import router as sim_router
 from api.system import router as system_router
 
@@ -52,6 +53,7 @@ async def lifespan(_app: FastAPI):
                 dtc=repository.record_dtc,
                 uds=repository.record_uds,
                 run=repository.start_run,
+                incident=repository.record_incident,
             )
             logger.info("Persistence enabled — simulation events will be recorded.")
         except Exception:  # pragma: no cover - depends on a live DB
@@ -86,6 +88,7 @@ app.add_middleware(
 
 app.include_router(sim_router, prefix="/api/sim", tags=["simulation"])
 app.include_router(history_router, prefix="/api/history", tags=["history"])
+app.include_router(incidents_router, prefix="/api/incidents", tags=["incidents"])
 app.include_router(system_router, prefix="/api/system", tags=["system"])
 
 

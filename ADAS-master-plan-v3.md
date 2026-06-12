@@ -21,7 +21,7 @@
 | **Timeline** | 6–12 months, quality over speed (~38 weeks estimated) |
 | **Product intent** | Personal-first, product-ready architecture |
 | **Frontend** | Complete redesign — new design system, glassmorphism, dark mode, micro-animations |
-| **Environment status** | WSL2 ✅, ROS2 ✅, CARLA ✅, smoke test ✅, Docker ✅, Postgres ✅, carla-ros-bridge ❌ |
+| **Environment status** | WSL2 ✅, ROS2 ✅, CARLA ✅, Docker ✅, Postgres ✅, carla-ros-bridge ✅, Phase 2 adas_* stack ✅ built & running (2026-06-12) — closed-loop data path verified end-to-end (world 10 Hz, odom 11 Hz, planning/control 20 Hz); DDS = FastDDS localhost-only; AEB-with-traffic demo pending |
 
 ### Phase mapping (old strategy numbering → this plan)
 
@@ -423,8 +423,8 @@ Windows host (native)                           WSL2: Ubuntu 22.04 (vhdx on D:)
 | Phase | Name | Duration | Key Deliverable |
 |-------|------|----------|-----------------|
 | **0** | Foundation | ✅ Complete | FastAPI + Next.js + PostgreSQL + UDS sim |
-| **1** | CARLA/ROS2 Bridge + SimBackend Seam + Frontend v2 | ~6 weeks | Live CARLA sensor data in ROS2 topics; SimBackend abstraction; redesigned dashboard |
-| **2** | ADAS Perception → Planning → Control | ~6 weeks | Real ADAS stack processing CARLA sensor data in ROS2 |
+| **1** | CARLA/ROS2 Bridge + SimBackend Seam + Frontend v2 | 1A ✅ 1B ✅ / 1C pending | Live CARLA sensor data in ROS2 topics ✅; SimBackend abstraction ✅; redesigned dashboard (1C) pending |
+| **2** | ADAS Perception → Planning → Control | ✅ Built & running (2026-06-12) | Real ADAS stack processing CARLA sensor data in ROS2 — see Status Log below; AEB-with-traffic gate demo pending |
 | **3** | Virtual ECU + Real UDS + Incident Model | ~4 weeks | ISO 14229 over ISO-TP; structured incident records; P1Cxx DTCs |
 | **4** | Agentic AI Infrastructure | ~6 weeks | Agent framework, Copilot, Scout/Analyst, memory system, model-agnostic LLM layer |
 | **5** | Closed-Loop Validation Engine | ~6 weeks | Evaluator agent; CARLA + AlpaSim SimBackends; golden-bank regression gates; Eval workspace |
@@ -432,6 +432,68 @@ Windows host (native)                           WSL2: Ubuntu 22.04 (vhdx on D:)
 | **7** | Level-5 Self-Developing Platform | ~4 weeks | Orchestrator OODA; goal objects; governance dashboard; full autonomy dial |
 
 **Total estimated: ~38 weeks (~9 months)**
+
+---
+
+## Status Log & Runbook (single source of truth — supersedes the old HANDOFF.txt)
+
+> Last updated: **2026-06-12** (Phase 2 bring-up session)
+
+### Where the project stands
+
+| Layer | Status |
+|-------|--------|
+| Phase 0 backend + dashboard + Postgres + tests/CI | ✅ Complete (26 tests pass) |
+| 1A carla-ros-bridge (colcon, WSL2) | ✅ Built — full ws 23/23 packages |
+| 1B SimBackend abstraction + golden-snapshot tests | ✅ Complete |
+| 1C Frontend v2 design system | 🔲 Pending |
+| 2A `adas_perception` (C++/PCL clustering → `/adas/obstacles`, `/adas/nearest_obstacle`) | ✅ Built & running — real LiDAR clusters at ~6 Hz |
+| 2B `adas_planning` (`planning_node` + `fsm` + `thresholds`, Phase 0 values 1:1) | ✅ Built & running — `/adas/state` at 20 Hz; 7/7 unit tests |
+| 2C `adas_control` (Pure Pursuit + PID → `CarlaEgoVehicleControl`) | ✅ Built & running — commands at 20 Hz |
+| **Phase 2 gate** (ego drives, AEB fires on lead vehicle, rviz markers) | 🟡 Data path verified end-to-end; the visual AEB-with-traffic demo is the remaining step |
+| 3A ecu_bridge / 3B incidents API | 🟡 Skeleton + `/api/incidents` files exist; UDS-over-ISO-TP not started |
+
+Verified live on 2026-06-12 (FastDDS): `/carla/status` 10 Hz · `/carla/ego_vehicle/odometry` 11 Hz · LiDAR 10 Hz · `/adas/state` + `/adas/acc_setpoint_mps` 20 Hz · `/carla/ego_vehicle/vehicle_control_cmd` 20 Hz.
+
+### How to run (one machine: CARLA on Windows, ROS2 in WSL2)
+
+```bash
+# One-time build (artifacts on ext4 — NEVER build under /mnt/c, see quirks):
+bash /mnt/c/Users/Asus/Documents/GitHub/ADAS/scripts/build_ws.sh
+
+# Full pipeline (kills stale nodes, starts bridge + ADAS stack detached,
+# writes bringup_log.txt / stack_log.txt / diag_output.txt to the repo root):
+#   Windows:  run_all.bat          (CARLA must already be running)
+#   Windows:  restart_all.bat     (also force-restarts CARLA from D:\adas)
+# Chase-cam + live ego speed readout:  follow_ego.bat
+
+# Manual, per terminal:
+source /mnt/c/Users/Asus/Documents/GitHub/ADAS/scripts/wsl_env.sh
+ros2 launch /mnt/c/Users/Asus/Documents/GitHub/ADAS/ros2_ws/launch/adas_bringup.launch.py   # bridge + ego + sensors
+ros2 launch /mnt/c/Users/Asus/Documents/GitHub/ADAS/ros2_ws/launch/adas_stack.launch.py     # perception + planning + control
+ros2 topic echo /adas/state        # aebStatus: standby → warning → active on approach
+```
+
+Diagnostics: `run_probe3.bat` (topic-rate health check → `probe_output.txt`), `scripts/diag.sh` (full snapshot → `diag_output.txt`), `phase2_gate.bat` (automated AEB gate test → `phase2_gate_report.txt`).
+
+Camera: `run_all.sh` auto-starts a chase-cam daemon (`scripts/follow_ego.py`) — the CARLA window follows the ego after every start/restart, re-attaching across respawns. Stop it to free-fly: `pkill -f follow_ego` (or run `follow_ego.bat` manually for a speed readout).
+
+### Environment quirks (hard-won — read before debugging)
+
+1. **Never colcon-build under `/mnt/c`** — NTFS ACLs make CMake `configure_file` fail with "Operation not permitted". Build/install live on ext4: `/home/osos/adas_build`, `/home/osos/adas_install` (what `scripts/build_ws.sh` does).
+2. **DDS = FastDDS + `ROS_LOCALHOST_ONLY=1`** (set by `scripts/wsl_env.sh`). CycloneDDS-on-loopback was tried and abandoned: WSL2's `lo` has no multicast, and unicast peer discovery degraded as participants accumulated.
+3. **`ros2 daemon` hangs on this WSL2** (XMLRPC ~2 min timeout). Always use `ros2 node list --no-daemon` / `ros2 topic list --no-daemon`.
+4. **carla-ros-bridge publishes NOTHING per-vehicle by default** — odometry/tf/speedometer come from **pseudo-sensors** that must be declared in `ros2_ws/config/adas_objects.json` (`sensor.pseudo.odom`, `sensor.pseudo.tf`, `sensor.pseudo.speedometer`). Their absence silently breaks the control loop (control holds 0.3 brake without odometry).
+5. **CARLA can freeze in synchronous mode** if a bridge is killed uncleanly — the window stops responding to close clicks; `restart_all.bat` force-kills and reboots it.
+6. `ros2 topic echo` may print nothing when its stdout is redirected to a file; `ros2 topic hz` is the reliable scripted probe.
+7. AEB scenario note (from Phase 0): tests assert on the deterministic sensor-fault DTC (B1001); the AEB P1001 timing window is revisited now that the real FSM exists.
+8. Planning's lane-offset is an event-based estimate from `lane_invasion` (decaying latch); waypoint-based continuous offset is a Phase 2 follow-up.
+
+### Next steps
+
+1. **Finish the Phase 2 gate demo**: double-click `phase2_gate.bat`. The test is self-contained: it teleports the ego to a verified-straight stretch, waits for cruise (≥12 m/s), spawns a stationary lead 32 m ahead (TTC ≈ 2.3 s — close enough that ACC cannot defuse it), and requires warning → active → hard braking → no collision. First run (2026-06-12 06:22) FAILED: ego had crashed into a lamppost pre-test — root cause was steer=0 with no waypoint path. Fixes: `carla_waypoint_publisher` now launches with the stack (`with_waypoints:=true`, lane-following once a goal is on `/carla/ego_vehicle/goal` — the gate publishes one), and the gate's teleport+straight-stretch design removes the dependency on steering.
+2. Phase 1C frontend redesign (independent track).
+3. Phase 3: real ISO 14229 over ISO-TP in `adas_ecu_bridge` (reuse `backend/uds/` wholesale), incidents model end-to-end, tester scripts in `scripts/`.
 
 ---
 
@@ -464,7 +526,7 @@ Windows host (native)                           WSL2: Ubuntu 22.04 (vhdx on D:)
 | WSL → CARLA smoke test | ✅ Passing |
 | Docker Compose | ✅ Verified |
 | PostgreSQL | ✅ Working |
-| carla-ros-bridge (colcon) | ❌ Not yet built |
+| carla-ros-bridge (colcon) | ✅ Built (2026-06-12, all pkgs rc=0) |
 
 ---
 

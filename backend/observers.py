@@ -28,11 +28,14 @@ DtcHandler = Callable[[Dict[str, object]], None]
 UdsHandler = Callable[[Dict[str, object]], None]
 # (scenario)
 RunHandler = Callable[[str], None]
+# payload dict — all IncidentRecord fields (Plan v3 §3B / §5.9)
+IncidentHandler = Callable[[Dict[str, object]], None]
 
 _log_handler: Optional[LogHandler] = None
 _dtc_handler: Optional[DtcHandler] = None
 _uds_handler: Optional[UdsHandler] = None
 _run_handler: Optional[RunHandler] = None
+_incident_handler: Optional[IncidentHandler] = None
 
 
 def register(
@@ -41,18 +44,20 @@ def register(
     dtc: Optional[DtcHandler] = None,
     uds: Optional[UdsHandler] = None,
     run: Optional[RunHandler] = None,
+    incident: Optional[IncidentHandler] = None,
 ) -> None:
     """Register persistence handlers (called once by the DB layer at startup)."""
-    global _log_handler, _dtc_handler, _uds_handler, _run_handler
+    global _log_handler, _dtc_handler, _uds_handler, _run_handler, _incident_handler
     _log_handler = log
     _dtc_handler = dtc
     _uds_handler = uds
     _run_handler = run
+    _incident_handler = incident
 
 
 def clear() -> None:
     """Drop all handlers (used on shutdown and in tests)."""
-    register(log=None, dtc=None, uds=None, run=None)
+    register(log=None, dtc=None, uds=None, run=None, incident=None)
 
 
 def emit_log(timestamp_ms: int, level: str, source: str, message: str) -> None:
@@ -89,3 +94,18 @@ def emit_run(scenario: str) -> None:
         _run_handler(scenario)
     except Exception:  # pragma: no cover - persistence is best-effort
         logger.warning("persistence run handler failed", exc_info=True)
+
+
+def emit_incident(payload: Dict[str, object]) -> None:
+    """Emit an at-fault incident event (Plan v3 §5.9 — the diagnostics bridge).
+
+    ``payload`` must contain at minimum ``incident_type``, ``scenario``,
+    ``timestamp_ms``, and ``dtc_code`` (a P1Cxx code from the reserved range).
+    All other IncidentRecord fields are optional and default to safe values.
+    """
+    if _incident_handler is None:
+        return
+    try:
+        _incident_handler(payload)
+    except Exception:  # pragma: no cover - persistence is best-effort
+        logger.warning("persistence incident handler failed", exc_info=True)
