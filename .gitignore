@@ -30,6 +30,11 @@ env/
 .DS_Store
 Thumbs.db
 
+# ── Claude Code ───────────────────────────────────────────────────────────────
+.claude/
+.claude-flow/
+.swarm/
+
 # ── Build / coverage artifacts ────────────────────────────────────────────────
 dist/
 build/
